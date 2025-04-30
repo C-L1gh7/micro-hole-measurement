@@ -49,8 +49,8 @@ plt.show()
 from mpl_toolkits.mplot3d import Axes3D
 
 # 创建网格
-x = np.arange(depth_map.shape[1]))
-y = np.arange(depth_map.shape[0]))
+x = np.arange(depth_map.shape[1])
+y = np.arange(depth_map.shape[0])
 x, y = np.meshgrid(x, y)
 
 # 绘制3D图
