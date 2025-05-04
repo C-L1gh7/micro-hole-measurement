@@ -1,0 +1,24 @@
+--cpu Cortex-M3
+"singelchip\startup_stm32f103xb.o"
+"singelchip\main.o"
+"singelchip\stm32f1xx_it.o"
+"singelchip\stm32f1xx_hal_msp.o"
+"singelchip\stm32f1xx_hal_gpio_ex.o"
+"singelchip\stm32f1xx_hal_tim.o"
+"singelchip\stm32f1xx_hal_tim_ex.o"
+"singelchip\stm32f1xx_hal.o"
+"singelchip\stm32f1xx_hal_rcc.o"
+"singelchip\stm32f1xx_hal_rcc_ex.o"
+"singelchip\stm32f1xx_hal_gpio.o"
+"singelchip\stm32f1xx_hal_dma.o"
+"singelchip\stm32f1xx_hal_cortex.o"
+"singelchip\stm32f1xx_hal_pwr.o"
+"singelchip\stm32f1xx_hal_flash.o"
+"singelchip\stm32f1xx_hal_flash_ex.o"
+"singelchip\stm32f1xx_hal_exti.o"
+"singelchip\stm32f1xx_hal_uart.o"
+"singelchip\system_stm32f1xx.o"
+--strict --scatter "SingelChip\SingelChip.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "SingelChip.map" -o SingelChip\SingelChip.axf
