@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define TIMEOUT_uS 1000000            // 无通信超时时间（1秒）
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -45,8 +45,10 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-uint8_t rx_data = 0;      // 存储接收到的字符
-uint8_t tx_flag = 0;      // 发送完成标志
+volatile uint8_t dir = 0;          // 方向标志
+volatile uint8_t uart_rx_char = 0; // 接收字符缓存
+volatile uint32_t last_rx_time = 0;// 最后接收时间戳
+uint8_t motor_running = 0;         // 电机运行标志
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,19 +107,41 @@ void Motor_Run(uint32_t dir, uint32_t travel, uint32_t speed)
 }
 /* 电机转动函数 END ---------------------------------------------------------*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == &huart1) {
-        if (rx_data == 'y') {  // 收到计算机回复的'y'
-            tx_flag = 0;       // 允许下次发送
+    if (huart->Instance == USART1) {
+        last_rx_time = HAL_GetTick(); // 更新最后接收时间
+        
+        if (uart_rx_char == 'F') {
+            dir = 1;
+            motor_running = 1;
+            Motor_Run(dir, 10, 5);
         }
-        // 重新启动接收（持续监听）
-        HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+        else if (uart_rx_char == 'R') {
+            dir = 2;
+            motor_running = 1;
+            Motor_Run(dir, 10, 5);
+        }
+        
+        // 重新使能接收中断
+        HAL_UART_Receive_IT(&huart1, (uint8_t*)&uart_rx_char, 1);
     }
 }
 
-// USART1发送完成回调函数
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart == &huart1) {
-        tx_flag = 1;  // 标记发送完成
+// 定时器中断回调（1ms周期）
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (htim->Instance == TIM2) {
+        // 检查通信超时
+        if ((HAL_GetTick() - last_rx_time) > TIMEOUT_uS) {
+            dir = 0;
+        }
+        
+        // 检查电机运行完成
+        if (motor_running) {
+            // 当检测到电机完成运行（需要根据实际硬件实现检测）
+            // 这里假设Motor_Run是阻塞函数，执行完自动完成
+            motor_running = 0;
+            uint8_t msg = 'D';
+            HAL_UART_Transmit(&huart1, &msg, 1, 100);
+        }
     }
 }
 /* USER CODE END 0 */
@@ -158,38 +182,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	uint32_t dir = 1;
-	uint32_t i = 0;
+	// 启动USART接收中断
+  HAL_UART_Receive_IT(&huart1, (uint8_t*)&uart_rx_char, 1);
+  // 启动定时器（1ms中断）
+  HAL_TIM_Base_Start_IT(&htim2);
   while (1){
-    if (i <= 3000)
-			{
-        // 1. 控制电机行进
-        Motor_Run(dir, 10, 5);  // 方向, 10um, 5us速度
-        HAL_Delay(100);         // 短暂延时（可选）
-        GPIOC->ODR ^= GPIO_PIN_13; // 翻转LED（指示动作）
-
-        // 2. 发送字符'y'给计算机
-        if (tx_flag == 0)
-				{
-					HAL_UART_Transmit_IT(&huart1, (uint8_t *)"y", 1);
-          while (tx_flag == 0); // 等待发送完成
-        }
-
-        // 3. 等待计算机回复'y'
-        rx_data = 0;
-        HAL_UART_Receive_IT(&huart1, &rx_data, 1); // 启动接收
-        while (rx_data != 'y'); // 阻塞等待回复
-
-        // 4. 更新行程计数器
-        i += 10;
-			}
-			// 5. 发送字符'D'给计算机
-        if (tx_flag == 0)
-				{
-					HAL_UART_Transmit_IT(&huart1, (uint8_t *)"D", 1);
-          while (tx_flag == 0); // 等待发送完成
-        }
-		}
+		__WFI(); // 进入低功耗模式
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
