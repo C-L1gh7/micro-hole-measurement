@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TIMEOUT_uS 1000000            // 无通信超时时间（1秒）
+#define TIMEOUT_uS 10000           // 无通信超时时间（1秒）
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -45,10 +45,7 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-volatile uint8_t dir = 0;          // 方向标志
-volatile uint8_t uart_rx_char = 0; // 接收字符缓存
-volatile uint32_t last_rx_time = 0;// 最后接收时间戳
-uint8_t motor_running = 0;         // 电机运行标志
+uint8_t rx_data;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -83,9 +80,6 @@ void Motor_Run(uint32_t dir, uint32_t travel, uint32_t speed)
 {
 	switch (dir)
   {
-  	case 0: //不转动
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
-  		break;
   	case 1: //正转
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
@@ -98,7 +92,7 @@ void Motor_Run(uint32_t dir, uint32_t travel, uint32_t speed)
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
   		break;
   }
-	uint32_t pulse_num = (travel/1000/200);
+	uint32_t pulse_num = (travel/1000*200)*2;
 	for(uint32_t i=0; i<=pulse_num; i++)
 	{
 		delay_us(speed);
@@ -106,42 +100,25 @@ void Motor_Run(uint32_t dir, uint32_t travel, uint32_t speed)
 	}
 }
 /* 电机转动函数 END ---------------------------------------------------------*/
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    if (huart->Instance == USART1) {
-        last_rx_time = HAL_GetTick(); // 更新最后接收时间
-        
-        if (uart_rx_char == 'F') {
-            dir = 1;
-            motor_running = 1;
-            Motor_Run(dir, 10, 5);
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance == USART1)
+    {
+        if (rx_data == 'F')
+        {
+            Motor_Run(1, 10, 50);
+            HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
+						delay_us(200);
         }
-        else if (uart_rx_char == 'R') {
-            dir = 2;
-            motor_running = 1;
-            Motor_Run(dir, 10, 5);
+        else if (rx_data == 'R')
+        {
+            Motor_Run(2, 10, 50);
+            HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
+						delay_us(200);
         }
-        
-        // 重新使能接收中断
-        HAL_UART_Receive_IT(&huart1, (uint8_t*)&uart_rx_char, 1);
-    }
-}
 
-// 定时器中断回调（1ms周期）
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    if (htim->Instance == TIM2) {
-        // 检查通信超时
-        if ((HAL_GetTick() - last_rx_time) > TIMEOUT_uS) {
-            dir = 0;
-        }
-        
-        // 检查电机运行完成
-        if (motor_running) {
-            // 当检测到电机完成运行（需要根据实际硬件实现检测）
-            // 这里假设Motor_Run是阻塞函数，执行完自动完成
-            motor_running = 0;
-            uint8_t msg = 'D';
-            HAL_UART_Transmit(&huart1, &msg, 1, 100);
-        }
+        // 重新使能接收中断
+        HAL_UART_Receive_IT(&huart1, &rx_data, 1);
     }
 }
 /* USER CODE END 0 */
@@ -182,12 +159,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	// 启动USART接收中断
-  HAL_UART_Receive_IT(&huart1, (uint8_t*)&uart_rx_char, 1);
-  // 启动定时器（1ms中断）
-  HAL_TIM_Base_Start_IT(&htim2);
+	HAL_UART_Receive_IT(&huart1, &rx_data, 1);
   while (1){
-		__WFI(); // 进入低功耗模式
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
