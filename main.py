@@ -1,11 +1,11 @@
 import cv2
 import os
-import numpy as np
 from datetime import datetime
 import time
 import serial
 
 from libs import shot
+from libs import CamAdjust as ca
 
 crop_size = 1000 #预裁切大小
 
@@ -26,11 +26,26 @@ processed_dir = os.path.join(folder_name, "processed")
 os.makedirs(original_dir, exist_ok=True)
 os.makedirs(processed_dir, exist_ok=True)
 
+
 i = 1
 try:
     # 初始化串口
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=TIMEOUT)
     print(f"已连接串口: {ser.name}")
+
+    while 1:
+        ret, frame = cap.read()
+        # 在预览画面添加十字线
+        frame_with_crosshair = shot.draw_crosshair(frame) #复制当前帧，缩放为720p并添加十字线
+        cv2.imshow('Camera (Press "q" to quit)', frame_with_crosshair)
+        key = cv2.waitKey(1) & 0xFF
+        if key ==  ord('q'):
+            break
+        elif key ==ord('f'):
+            ser.write(b'F')
+        elif key ==ord('r'):
+            ser.write(b'R')
+    
     ser.write(b'F')
     print("已发送正转信号 'F'")
     while i<=300:
@@ -44,7 +59,6 @@ try:
         frame_with_crosshair = shot.draw_crosshair(frame) #复制当前帧，缩放为720p并添加十字线
         cv2.imshow('Camera (Press "q" to quit)', frame_with_crosshair)
 
-        key = cv2.waitKey(1) & 0xFF
         if ser.in_waiting > 0:
             received_data = ser.read(1).decode('ascii')  # 读取1个字节
             
@@ -52,6 +66,7 @@ try:
                 print("收到指令 'D'，开始执行...")
 
                 start_time = time.time()  # 记录开始时间
+                time.sleep(0.05) #50ms消抖
 
                 # 获取图像尺寸
                 height, width = frame.shape[:2]

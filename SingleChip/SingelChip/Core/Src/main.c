@@ -92,11 +92,11 @@ void Motor_Run(uint32_t dir, uint32_t travel, uint32_t speed)
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
   		break;
   }
-	uint32_t pulse_num = (travel/1000*200)*2;
-	for(uint32_t i=0; i<=pulse_num; i++)
+	//uint32_t pulse_num = (travel);
+	for(uint32_t i=0; i<travel; i++)
 	{
-		delay_us(speed);
 		GPIOA->ODR ^= GPIO_PIN_2;
+		delay_us(speed);
 	}
 }
 /* 电机转动函数 END ---------------------------------------------------------*/
@@ -106,13 +106,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     {
         if (rx_data == 'F')
         {
-            Motor_Run(1, 10, 50);
+            Motor_Run(1, 64, 5);
             HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
 						delay_us(200);
         }
         else if (rx_data == 'R')
         {
-            Motor_Run(2, 10, 50);
+            Motor_Run(2, 64, 5);
             HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
 						delay_us(200);
         }
