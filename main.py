@@ -45,7 +45,7 @@ try:
             break
         
         # 在预览画面添加十字线
-        frame_with_crosshair = shot.draw_crosshair(frame)
+        frame_with_crosshair = shot.draw_crosshair(frame, crop_size=150)
         cv2.imshow('Camera (Press "q" to quit, "s" to start/stop capture)', frame_with_crosshair)
         
         key = cv2.waitKey(1) & 0xFF
@@ -120,5 +120,5 @@ finally:
 # 处理所有图片
 if photo_count > 0:
     print("开始处理图片...")
-    shot.process_images(Vision_adjust=50)
+    shot.process_images(crop_size=150)
     print("图片处理完成")
