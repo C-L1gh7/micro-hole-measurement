@@ -26,7 +26,7 @@ processed_dir = os.path.join(folder_name, "processed")
 os.makedirs(original_dir, exist_ok=True)
 os.makedirs(processed_dir, exist_ok=True)
 
-
+#################
 i = 1
 try:
     # 初始化串口
