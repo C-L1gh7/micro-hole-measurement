@@ -5,11 +5,14 @@ import time
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 import open3d as o3d
+from scipy.optimize import curve_fit
 
 # 参数设置
 wr_L = 2  # 自适应邻域半径 wr 的较小值
 wr_H = 8  # 自适应邻域半径 wr 的较大值
 TH_mh = 600 # 阈值 TH_mh
+w_L = 2  # 参数 wL
+w_H = 4  # 参数 wH
 delta_z = 10  # 采样间隔 Δz (μm)
 total_frames = 97  # 图像帧总数 P
 
@@ -40,6 +43,7 @@ def calculate_gray_gradient(image_sequence):
     return gradients
 
 
+
 # 计算焦点测量值
 def calculate_focus_measure(image_sequence, varmax):
     height, width = image_sequence[0].shape
@@ -61,7 +65,8 @@ def calculate_focus_measure(image_sequence, varmax):
                 if wr == wr_L:
                     kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
                 else:
-                    kernel = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
+                    kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
+                    # kernel = np.array([[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
                 neighborhood = img[max(y - wr, 0):min(y + wr + 1, height),
                                 max(x - wr, 0):min(x + wr + 1, width)]
                 filtered = cv2.filter2D(neighborhood, -1, kernel)
@@ -87,7 +92,7 @@ def enhance_focus_volume(focus_volume):
                     enhanced_volume[y, x, p] = focus_volume[y, x, p]
     return enhanced_volume
 
-
+"""
 # 改进的高斯曲线拟合方法
 def modified_gaussian_fit(focus_curve, p_max, P_L, P_R, TH_c=0.5):
     zp = np.arange(len(focus_curve)) * delta_z
@@ -96,6 +101,33 @@ def modified_gaussian_fit(focus_curve, p_max, P_L, P_R, TH_c=0.5):
     # 定义高斯曲线模型
     def gaussian_model(zp, sigma):
         return (1.0 / (np.sqrt(2 * np.pi) * sigma)) * np.exp(-0.5 * ((zp - p_max * delta_z) / sigma) ** 2)
+    # 使用曲线拟合
+    try:
+        popt, _ = curve_fit(gaussian_model, zp[P_L:P_R+1], focus_curve[P_L:P_R+1], p0=[sigma])
+        sigma_opt = popt[0]
+    except:
+        sigma_opt = sigma
+    # 计算最佳焦点位置
+    z_opt = p_max * delta_z
+    return z_opt
+"""
+
+
+
+
+# 改进的高斯曲线拟合方法
+def modified_gaussian_fit(focus_curve, p_max, delta_z, TH_c=0.5):
+    zp = np.arange(len(focus_curve)) * delta_z
+    # 初始化参数
+    sigma = 1.0
+    # 定义高斯曲线模型
+    def gaussian_model(zp, sigma):
+        return (1.0 / (np.sqrt(2 * np.pi) * sigma)) * np.exp(-0.5 * ((zp - p_max * delta_z) / sigma) ** 2)
+    # 计算ΔP_L和ΔP_R
+    delta_P_L = p_max - (p_max - 2 * TH_c)
+    delta_P_R = (p_max + 2 * TH_c) - p_max
+    P_L = int(max(0, p_max - delta_P_L))
+    P_R = int(min(len(focus_curve), p_max + delta_P_R))
     # 使用曲线拟合
     try:
         popt, _ = curve_fit(gaussian_model, zp[P_L:P_R+1], focus_curve[P_L:P_R+1], p0=[sigma])
@@ -120,6 +152,7 @@ def get_optimal_focus_position(enhanced_volume):
             z_opt = modified_gaussian_fit(focus_curve, max_idx, P_L, P_R)
             optimal_positions[y, x] = z_opt
     return optimal_positions
+
 
 # 绘制灰度梯度图像
 def plot_gray_gradients(gray_gradients, frame_indices):
@@ -167,6 +200,7 @@ def plot_focus_curves(focus_volume, enhanced_volume, image_points):
     
     plt.tight_layout()
     plt.show()
+
 
 # 三维重建
 def reconstruct_3d(optimal_positions):
@@ -255,6 +289,7 @@ if __name__ == "__main__":
     print("计算焦点测量值用时（秒）：",t5 - t4)
 
     enhanced_volume = enhance_focus_volume(focus_volume)
+    #enhanced_volume = enhance_focus_volume(focus_volume)
 
     t6 = time.time()
 
@@ -263,9 +298,6 @@ if __name__ == "__main__":
     frame_indices = [0, 20, 40, 60, 80, 96]
 
     plot_gray_gradients(gray_gradients, frame_indices)
-
-
-
 
     t7 = time.time()
 
@@ -294,3 +326,4 @@ if __name__ == "__main__":
     o3d.visualization.draw_geometries([pcd])
     
     print("程序总用时（秒）：",t8 - t1)
+    
