@@ -27,6 +27,9 @@ os.makedirs(original_dir, exist_ok=True)
 os.makedirs(processed_dir, exist_ok=True)
 
 #################
+
+####testjzk
+
 i = 1
 try:
     # 初始化串口
