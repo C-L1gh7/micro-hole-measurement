@@ -3,61 +3,49 @@ import glob
 import cv2
 import numpy as np
 
-def draw_crosshair(frame, crop_size=50, patch_size=10, display_size=(1280, 720)):
-    """绘制中心十字线和crop框，按缩放比例调整坐标"""
-    # 获取原始图像大小
-    h_raw, w_raw = frame.shape[:2]
-    disp_w, disp_h = display_size
+def draw_crosshair(frame, crop_size=50, patch_size=50):
+    """在原图上绘制中心十字线、crop框和patch区域"""
+    # 拷贝原始帧，防止修改原图
+    frame_with_overlay = frame.copy()
+    h, w = frame_with_overlay.shape[:2]
 
-    # 计算缩放比例
-    scale_x = disp_w / w_raw
-    scale_y = disp_h / h_raw
+    # 中心坐标
+    center_x = w // 2
+    center_y = h // 2
 
-    # 缩放图像
-    frame_with_overlay = cv2.resize(frame.copy(), (disp_w, disp_h))
-
-    # 中心坐标（基于缩放后图像）
-    center_x = disp_w // 2
-    center_y = disp_h // 2
-
-    # 缩放后的尺寸
-    crop_size_scaled = int(crop_size * scale_x)
-    patch_size_scaled = int(patch_size * scale_x)
-
-    # 十字线
-    cv2.line(frame_with_overlay, (0, center_y), (disp_w, center_y), (0, 0, 255), 1)
-    cv2.line(frame_with_overlay, (center_x, 0), (center_x, disp_h), (0, 0, 255), 1)
-
-    # crop区域框
-    half_crop = crop_size_scaled // 2
+    # crop 区域框
+    half_crop = crop_size // 2
     crop_x1 = center_x - half_crop
     crop_y1 = center_y - half_crop
     crop_x2 = center_x + half_crop
     crop_y2 = center_y + half_crop
-    cv2.rectangle(frame_with_overlay, (crop_x1, crop_y1), (crop_x2, crop_y2), (255, 0, 255), 2)
 
-    # 中心patch
-    half_patch = patch_size_scaled // 2
+    # patch 大小
+    half_patch = patch_size // 2
+
+    # 中心 patch
     cx1 = center_x - half_patch
     cy1 = center_y - half_patch
     cx2 = center_x + half_patch
     cy2 = center_y + half_patch
-    cv2.rectangle(frame_with_overlay, (cx1, cy1), (cx2, cy2), (255, 0, 255), 2)
 
-    # 左上角patch
+    # 左上角 patch
     top_x1 = crop_x1
     top_y1 = crop_y1
-    top_x2 = crop_x1 + patch_size_scaled
-    top_y2 = crop_y1 + patch_size_scaled
-    cv2.rectangle(frame_with_overlay, (top_x1, top_y1), (top_x2, top_y2), (255, 0, 255), 2)
+    top_x2 = crop_x1 + patch_size
+    top_y2 = crop_y1 + patch_size
+
+    # 十字线
+    cv2.line(frame_with_overlay, (0, center_y), (w, center_y), (0, 0, 255), 1)
+    cv2.line(frame_with_overlay, (center_x, 0), (center_x, h), (0, 0, 255), 1)
+
+    # 画框
+    cv2.rectangle(frame_with_overlay, (crop_x1, crop_y1), (crop_x2, crop_y2), (255, 0, 255), 2)  # crop 框
+    cv2.rectangle(frame_with_overlay, (cx1, cy1), (cx2, cy2), (255, 0, 255), 2)                  # 中心 patch
+    cv2.rectangle(frame_with_overlay, (top_x1, top_y1), (top_x2, top_y2), (255, 0, 255), 2)      # 左上角 patch
 
     return frame_with_overlay
 
-
-
-import os
-import glob
-import cv2
 
 def process_images(input_dir="photo", output_dir="processed", crop_size=50, patch_size=10):
     """灰度化原图 -> 保存至processed/gray -> 提取中心与左上角patch并保存"""

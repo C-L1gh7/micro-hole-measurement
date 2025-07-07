@@ -104,16 +104,31 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1)
     {
-        if (rx_data == 'F')
-        {
-            Motor_Run(1, 16, 174);
-            HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
-        }
-        else if (rx_data == 'R')
-        {
-            Motor_Run(2, 640, 87);
-            HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
-        }
+        switch (rx_data)
+					{
+						case '1':
+								Motor_Run(1, 256, 87);
+								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
+								break;
+
+						case '2':
+								Motor_Run(2, 256, 87);
+								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
+								break;
+						case '3':
+								Motor_Run(1, 2560, 5);
+								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
+								break;
+
+						case '4':
+								Motor_Run(2, 2560, 5);
+								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
+								break;
+
+						default:
+								// 可选：未定义的指令
+								break;
+					}
 
         // 重新使能接收中断
         HAL_UART_Receive_IT(&huart1, &rx_data, 1);

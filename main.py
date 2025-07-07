@@ -7,8 +7,9 @@ import serial
 from libs import shot
 from libs import CamAdjust as ca
 
-crop_size = 500  # 预裁切大小
-patch_size = 50
+
+crop_size = 1000  # 预裁切大小
+patch_size = 50  # patch大小
 
 '''配置USART1的参数'''
 SERIAL_PORT = 'COM5'
@@ -38,6 +39,10 @@ try:
     photo_count = 0
     max_photos = 1000      # 照片数量
     capture_mode = False  # 拍摄模式标志
+
+    cv2.namedWindow('Camera (Press "q" to quit, "s" to start/stop capture)', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Camera (Press "q" to quit, "s" to start/stop capture)', 1280, 720)  # 显示窗口保持16:9比例
+
     
     while True:
         ret, frame = cap.read()
@@ -49,21 +54,27 @@ try:
         frame_with_crosshair = shot.draw_crosshair(frame, crop_size=crop_size, patch_size=patch_size)
         cv2.imshow('Camera (Press "q" to quit, "s" to start/stop capture)', frame_with_crosshair)
         
+        
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
         # 调试时允许使用按键控制电机移动
-        elif key ==ord('f'): # 前进
-            ser.write(b'F')
-        elif key ==ord('r'): # 后退
-            ser.write(b'R')
+        elif key ==ord('1'): # 前进
+            ser.write(b'1')
+        elif key ==ord('2'): # 后退
+            ser.write(b'2')
+        elif key ==ord('3'): # 大角度前进
+            ser.write(b'3')
+        elif key ==ord('4'): # 大角度后退
+            ser.write(b'4')    
 
         elif key == ord('s'):  # 切换拍摄模式
             capture_mode = not capture_mode
             print(f"拍摄模式: {'开启' if capture_mode else '关闭'}")
             if capture_mode:
-                ser.write(b'F')
-                print("已发送正转信号 'F'")
+                ser.write(b'1')
+                print("已发送正转信号 '1'，开始拍摄")
+            
         
         
         if capture_mode and photo_count < max_photos:
@@ -97,8 +108,9 @@ try:
                     
                     # 发送正转信号
                     if photo_count < max_photos:
-                        ser.write(b'F')
-                        print("已发送正转信号 'F'")
+                        ser.write(b'1')
+                        print("已发送正转信号 '1'")
+                        # time.sleep(2)
                     else:
                         print(f"已完成 {max_photos} 张照片拍摄")
                         capture_mode = False
