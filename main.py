@@ -7,7 +7,8 @@ import serial
 from libs import shot
 from libs import CamAdjust as ca
 
-crop_size = 1000  # 预裁切大小
+crop_size = 500  # 预裁切大小
+patch_size = 50
 
 '''配置USART1的参数'''
 SERIAL_PORT = 'COM5'
@@ -35,7 +36,7 @@ try:
     print(f"已连接串口: {ser.name}")
     
     photo_count = 0
-    max_photos = 300      # 照片数量
+    max_photos = 1000      # 照片数量
     capture_mode = False  # 拍摄模式标志
     
     while True:
@@ -45,19 +46,19 @@ try:
             break
         
         # 在预览画面添加十字线
-        frame_with_crosshair = shot.draw_crosshair(frame, crop_size=250)
+        frame_with_crosshair = shot.draw_crosshair(frame, crop_size=crop_size, patch_size=patch_size)
         cv2.imshow('Camera (Press "q" to quit, "s" to start/stop capture)', frame_with_crosshair)
         
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
         # 调试时允许使用按键控制电机移动
-        elif key ==ord('f'):
+        elif key ==ord('f'): # 前进
             ser.write(b'F')
-        elif key ==ord('r'):
+        elif key ==ord('r'): # 后退
             ser.write(b'R')
 
-        elif key == ord('s'):  # 新增：切换拍摄模式
+        elif key == ord('s'):  # 切换拍摄模式
             capture_mode = not capture_mode
             print(f"拍摄模式: {'开启' if capture_mode else '关闭'}")
             if capture_mode:
@@ -72,7 +73,6 @@ try:
                 
                 if received_data == 'D':
                     print(f"收到指令 'D'，拍摄照片 {photo_count+1}/{max_photos}")
-                    time.sleep(0.5)
                     start_time = time.time()
                     
                     # 裁剪中心区域
@@ -120,5 +120,5 @@ finally:
 # 处理所有图片
 if photo_count > 0:
     print("开始处理图片...")
-    shot.process_images(crop_size=250)
+    shot.process_images(crop_size=crop_size, patch_size=patch_size)
     print("图片处理完成")

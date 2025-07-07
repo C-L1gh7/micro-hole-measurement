@@ -92,7 +92,7 @@ void Motor_Run(uint32_t dir, uint32_t travel, uint32_t speed)
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3, GPIO_PIN_RESET);
   		break;
   }
-	//uint32_t pulse_num = (travel);
+	//uint32_t pulse_num = (travel*64);
 	for(uint32_t i=0; i<travel; i++)
 	{
 		GPIOA->ODR ^= GPIO_PIN_2;
@@ -106,15 +106,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     {
         if (rx_data == 'F')
         {
-            Motor_Run(1, 64, 5);
+            Motor_Run(1, 16, 174);
             HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
-						delay_us(200);
         }
         else if (rx_data == 'R')
         {
-            Motor_Run(2, 64, 5);
+            Motor_Run(2, 640, 87);
             HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
-						delay_us(200);
         }
 
         // 重新使能接收中断
