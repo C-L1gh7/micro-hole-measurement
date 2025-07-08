@@ -107,21 +107,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         switch (rx_data)
 					{
 						case '1':
-								Motor_Run(1, 256, 20);
+								Motor_Run(1, 128, 30);
 								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
 								break;
 
 						case '2':
-								Motor_Run(2, 256, 20);
+								Motor_Run(2, 128, 30);
 								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
 								break;
 						case '3':
-								Motor_Run(1, 2560, 5);
+								Motor_Run(1, 1280, 15);
 								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
 								break;
 
 						case '4':
-								Motor_Run(2, 2560, 5);
+								Motor_Run(2, 1280, 15);
 								HAL_UART_Transmit(&huart1, (uint8_t *)"D", 1, HAL_MAX_DELAY);
 								break;
 

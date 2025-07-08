@@ -206,7 +206,7 @@ if photo_count > 0:
 from libs.focus_analysis import analyze_focus
 
 # 一键分析，显示详细信息并保存结果
-result = analyze_focus(method='tenengrad', save_file=True, verbose=False, adjust=0)
+result = analyze_focus(method='laplacian', save_file=True, verbose=False, adjust=0)
 
 # 获取最佳图片文件名
 if result['top_best']:
