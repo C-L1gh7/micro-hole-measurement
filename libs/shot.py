@@ -24,9 +24,9 @@ def draw_crosshair(frame, crop_size=50, patch_size=50):
     half_patch = patch_size // 2
 
     # 中心 patch
-    cx1 = center_x - half_patch
+    cx1 = center_x - half_patch+30
     cy1 = center_y - half_patch
-    cx2 = center_x + half_patch
+    cx2 = center_x + half_patch+30
     cy2 = center_y + half_patch
 
     # 左上角 patch
@@ -64,12 +64,12 @@ def process_images(input_dir="photo", output_dir="processed", crop_size=50, patc
         gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # 保存灰度图到 processed/gray
-        base_name = os.path.splitext(os.path.basename(img_path))[0]
-        base_processed_dir = os.path.dirname(img_path).replace("original", "processed")
-        gray_dir = os.path.join(base_processed_dir, "gray")
-        os.makedirs(gray_dir, exist_ok=True)
-        gray_path = os.path.join(gray_dir, f"{base_name}.png")
-        cv2.imwrite(gray_path, gray_img)
+        # base_name = os.path.splitext(os.path.basename(img_path))[0]
+        # base_processed_dir = os.path.dirname(img_path).replace("original", "processed")
+        # gray_dir = os.path.join(base_processed_dir, "gray")
+        # os.makedirs(gray_dir, exist_ok=True)
+        # gray_path = os.path.join(gray_dir, f"{base_name}.png")
+        # cv2.imwrite(gray_path, gray_img)
 
         # 接下来对灰度图进行裁切和patch提取
         h, w = gray_img.shape
@@ -88,7 +88,7 @@ def process_images(input_dir="photo", output_dir="processed", crop_size=50, patc
         # 中心patch
         center_patch = gray_img[
             crop_center_y - half_patch : crop_center_y + half_patch,
-            crop_center_x - half_patch : crop_center_x + half_patch
+            crop_center_x - half_patch + 30 : crop_center_x + half_patch + 30
         ]
 
         # 左上角patch
