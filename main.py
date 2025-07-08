@@ -7,9 +7,10 @@ import serial
 from libs import shot
 from libs import CamAdjust as ca
 
+start_all = time.time()# 记录开始时间
 
-crop_size = 1000  # 预裁切大小
-patch_size = 50  # patch大小
+crop_size = 750  # 预裁切大小
+patch_size = 100  # patch大小
 
 '''配置USART1的参数'''
 SERIAL_PORT = 'COM5'
@@ -40,6 +41,7 @@ try:
     max_photos = 1000      # 照片数量
     capture_mode = False  # 拍摄模式标志
     save_photos = True    # 照片保存开关，按k键控制
+    k_pressed_photo_number = None  # 第一次按下k时的照片编号
     
     # 坐标系统变量
     current_position = 0  # 当前位置坐标
@@ -64,6 +66,8 @@ try:
         status_text += f" | Capture: {'ON' if capture_mode else 'OFF'}"
         status_text += f" | Save: {'ON' if save_photos else 'OFF'}"
         status_text += f" | Photos: {photo_count}/{max_photos}"
+        if k_pressed_photo_number is not None:
+            status_text += f" | K-pressed at: {k_pressed_photo_number}"
         
         cv2.putText(frame_with_crosshair, status_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         
@@ -113,6 +117,10 @@ try:
                 print("坐标系统未初始化，请先按's'开始拍摄模式")
         elif key == ord('k') or key == ord('K'):  # 切换照片保存开关
             save_photos = not save_photos
+            # 第一次按下k键时记录照片编号
+            if k_pressed_photo_number is None and not save_photos:
+                k_pressed_photo_number = photo_count
+                print(f"第一次按下k键，记录照片编号: {k_pressed_photo_number}")
             print(f"照片保存: {'开启' if save_photos else '关闭'}")
         elif key == ord('s') or key == ord('S'):  # 切换拍摄模式
             capture_mode = not capture_mode
@@ -191,16 +199,23 @@ finally:
 # 处理所有图片
 if photo_count > 0:
     print("开始处理图片...")
-    shot.process_images(crop_size=crop_size, patch_size=patch_size)
+    # 将k_pressed_photo_number传递给处理函数
+    shot.process_images(crop_size=crop_size, patch_size=patch_size, k_pressed_photo_number=k_pressed_photo_number)
     print("图片处理完成")
 
 from libs.focus_analysis import analyze_focus
 
 # 一键分析，显示详细信息并保存结果
-result = analyze_focus(method='sobel')
+result = analyze_focus(method='tenengrad', save_file=True, verbose=False, adjust=0)
 
 # 获取最佳图片文件名
 if result['top_best']:
     print(f"TOP最佳: {result['top_best']['filename']}")
 if result['bottom_best']:
     print(f"BOTTOM最佳: {result['bottom_best']['filename']}")
+if result[ 'aperture']:
+    print(f"孔深: {result['aperture']}")
+
+# 计算总耗时
+end_all = time.time()
+print(f"总耗时: {(end_all - start_all):.2f} 秒")
