@@ -24,9 +24,9 @@ def draw_crosshair(frame, crop_size=50, patch_size=50):
     half_patch = patch_size // 2
 
     # 中心 patch
-    cx1 = center_x - half_patch+30
+    cx1 = center_x - half_patch
     cy1 = center_y - half_patch
-    cx2 = center_x + half_patch+30
+    cx2 = center_x + half_patch
     cy2 = center_y + half_patch
 
     # 左上角 patch
@@ -98,7 +98,7 @@ def process_images(input_dir="photo", output_dir="processed", crop_size=50, patc
         # 中心patch
         center_patch = img[
             crop_center_y - half_patch : crop_center_y + half_patch,
-            crop_center_x - half_patch + 30 : crop_center_x + half_patch + 30
+            crop_center_x - half_patch : crop_center_x + half_patch
         ]
 
         # 左上角patch

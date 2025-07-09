@@ -9,6 +9,10 @@ import numpy as np
 from datetime import datetime
 import glob
 import re
+import requests
+import hashlib
+import base64
+import pywt
 
 
 class FocusAnalyzer:
@@ -19,10 +23,10 @@ class FocusAnalyzer:
         初始化聚焦度分析器
         
         Args:
-            method: 聚焦度计算方法 ('laplacian', 'sobel', 'brenner', 'variance')
+            method: 聚焦度计算方法 ('laplacian', 'sobel', 'brenner', 'variance', 'wavelet')
         """
         self.method = method
-        self.supported_methods = ['laplacian', 'sobel', 'brenner', 'variance']
+        self.supported_methods = ['laplacian', 'sobel', 'brenner', 'variance', 'wavelet']
         
         if method not in self.supported_methods:
             raise ValueError(f"不支持的方法: {method}. 支持的方法: {self.supported_methods}")
@@ -64,6 +68,21 @@ class FocusAnalyzer:
         elif self.method == 'variance':
             # 方差方法
             focus_measure = np.var(gray)
+        
+        elif self.method == 'wavelet':
+        # 多层小波分解（默认3层，使用 db2）
+            level = 3
+            wavelet_name = 'db2'
+            coeffs = pywt.wavedec2(gray, wavelet=wavelet_name, level=level)
+
+            # coeffs[0] 是 LL，其余是 [(LH, HL, HH), ...]
+            focus_measure = 0.0
+            for i in range(1, len(coeffs)):
+                cH, cV, cD = coeffs[i]
+                focus_measure += np.sum(cH**2) + np.sum(cV**2) + np.sum(cD**2)
+
+            # 可选归一化
+            focus_measure /= gray.size
         
         return focus_measure
     
@@ -216,7 +235,7 @@ def calculate_aperture(top_best, bottom_best, adjust=0):
     if top_number is None or bottom_number is None:
         return None
     
-    # 计算孔径：(bottom编号 - top编号) * 0.005 - adjust
+    # 计算孔径：(bottom编号 - top编号) * 比例尺 - adjust
     aperture = (bottom_number - top_number) * 0.005 - adjust
     
     return aperture
@@ -285,7 +304,7 @@ def get_best_focus_images(processed_path=None, method='laplacian', adjust=0, ver
         'aperture': aperture,
         'method': method,
         'processed_path': processed_path,
-        'adjust': adjust
+        'adjust': adjust,
     }
     
     return result
@@ -395,11 +414,32 @@ def save_analysis_to_file(analysis_result):
         # 保存孔径计算结果
         if aperture is not None:
             f.write("孔径计算:\n")
-            f.write(f"孔径值: {aperture:.3f}\n\n")
+            f.write(f"孔径值: {aperture:.5f}\n\n")
         else:
             f.write("孔径计算: 无法计算（缺少有效的图片编号）\n\n")
     
     print(f"结果已保存到: {result_file}")
+
+def send_image_to_wechat(image_path, webhook_url):
+    # 读取图片并编码
+    with open(image_path, 'rb') as f:
+        image_data = f.read()
+        base64_data = base64.b64encode(image_data).decode('utf-8')
+        md5_data = hashlib.md5(image_data).hexdigest()
+    
+    # 构造 payload
+    payload = {
+        "msgtype": "image",
+        "image": {
+            "base64": base64_data,
+            "md5": md5_data
+        }
+    }
+    
+    # 发送 POST 请求
+    response = requests.post(webhook_url, json=payload)
+    if response.status_code != 200:
+        print(f"发送失败: {response.text}")
 
 
 # 简化的调用函数
@@ -422,4 +462,25 @@ def analyze_focus(processed_path=None, method='laplacian', adjust=0, verbose=Tru
     if verbose:
         print_analysis_summary(result, save_file)
     
+    # 企业微信推送5张原图：top最佳帧的前后两帧
+    webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0c14a35f-f9df-42e3-8f3c-a76f28f1fbe5"
+    top_best = result.get('top_best')
+
+    if top_best:
+        top_number = extract_number_from_filename(top_best['filename'])
+        if top_number is not None:
+            try:
+                # 原图目录为 processed_path 的上一级的 original
+                original_dir = os.path.join(os.path.dirname(result['processed_path']), 'original')
+
+                # 构造前后两帧共5张的编号列表
+                indices = [top_number + i for i in range(-2, 3)]
+
+                for idx in indices:
+                    image_path = os.path.join(original_dir, f"{idx}.png")
+                    if os.path.exists(image_path):
+                        send_image_to_wechat(image_path, webhook_url)
+            except Exception as e:
+                print(f"[警告] 尝试发送原图时出错: {e}")
+
     return result
