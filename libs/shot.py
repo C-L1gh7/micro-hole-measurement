@@ -47,24 +47,34 @@ def draw_crosshair(frame, crop_size=50, patch_size=50):
     return frame_with_overlay
 
 
-def process_images(input_dir="photo", output_dir="processed", crop_size=50, patch_size=10, k_pressed_photo_number=None):
+def process_images(base_path, crop_size=50, patch_size=10, k_pressed_photo_number=None):
     """
+    处理指定路径下original文件夹中的图片
     灰度化原图 -> 保存至processed/gray -> 提取中心与左上角patch并保存
     如果k_pressed_photo_number不为None，则根据照片编号分配到top/bottom文件夹
     """
-    img_paths = glob.glob(f"{input_dir}/**/original/*.png", recursive=True)
-    if not img_paths:
-        print(f"未找到 {input_dir} 目录下的图片！")
+    # 构建original文件夹路径
+    original_dir = os.path.join(base_path, "original")
+    
+    if not os.path.exists(original_dir):
+        print(f"错误：找不到original文件夹：{original_dir}")
         return
+    
+    # 查找original文件夹中的图片
+    img_paths = glob.glob(os.path.join(original_dir, "*.png"))
+    if not img_paths:
+        print(f"未找到 {original_dir} 目录下的图片！")
+        return
+
+    # 创建processed文件夹
+    processed_dir = os.path.join(base_path, "processed")
+    os.makedirs(processed_dir, exist_ok=True)
 
     for img_path in img_paths:
         img = cv2.imread(img_path)
         if img is None:
             print(f"无法读取图片: {img_path}")
             continue
-
-        # 灰度化
-        # gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # 获取图片的编号（从文件名获取）
         base_name = os.path.splitext(os.path.basename(img_path))[0]
@@ -73,13 +83,6 @@ def process_images(input_dir="photo", output_dir="processed", crop_size=50, patc
         except ValueError:
             print(f"无法解析图片编号: {base_name}")
             continue
-
-        # 保存灰度图到 processed/gray
-        base_processed_dir = os.path.dirname(img_path).replace("original", "processed")
-        # gray_dir = os.path.join(base_processed_dir, "gray")
-        # os.makedirs(gray_dir, exist_ok=True)
-        # gray_path = os.path.join(gray_dir, f"{base_name}.png")
-        # cv2.imwrite(gray_path, gray_img)
 
         # 接下来对原图进行裁切和patch提取
         h, w = img.shape[:2]
@@ -113,37 +116,58 @@ def process_images(input_dir="photo", output_dir="processed", crop_size=50, patc
             # 编号大于等于k_pressed_photo_number的图片：中心patch保存到bottom，左上角patch保存到top
             if photo_number <= k_pressed_photo_number:
                 # 左上角patch -> top
-                top_dir = os.path.join(base_processed_dir, "top")
+                top_dir = os.path.join(processed_dir, "top")
                 os.makedirs(top_dir, exist_ok=True)
                 cv2.imwrite(os.path.join(top_dir, f"{base_name}.png"), top_patch)
             else:
                 # 中心patch -> bottom
-                bottom_dir = os.path.join(base_processed_dir, "bottom")
+                bottom_dir = os.path.join(processed_dir, "bottom")
                 os.makedirs(bottom_dir, exist_ok=True)
                 cv2.imwrite(os.path.join(bottom_dir, f"{base_name}.png"), center_patch)
         else:
             # 如果没有按过k键，使用原来的逻辑
             # 保存到 bottom（中心 patch）
-            bottom_dir = os.path.join(base_processed_dir, "bottom")
+            bottom_dir = os.path.join(processed_dir, "bottom")
             os.makedirs(bottom_dir, exist_ok=True)
             cv2.imwrite(os.path.join(bottom_dir, f"{base_name}.png"), center_patch)
 
             # 保存到 top（左上角 patch）
-            top_dir = os.path.join(base_processed_dir, "top")
+            top_dir = os.path.join(processed_dir, "top")
             os.makedirs(top_dir, exist_ok=True)
             cv2.imwrite(os.path.join(top_dir, f"{base_name}.png"), top_patch)
 
     print("所有图片处理完成！")
+    print(f"处理路径: {base_path}")
+    print(f"输出路径: {processed_dir}")
+    
     if k_pressed_photo_number is not None:
         print(f"根据k键按下时的照片编号({k_pressed_photo_number})进行分类处理")
-        print(f"- 编号 < {k_pressed_photo_number} 的图片：左上角patch保存至top，中心patch保存至bottom")
-        print(f"- 编号 >= {k_pressed_photo_number} 的图片：中心patch保存至bottom，左上角patch保存至top")
+        print(f"- 编号 <= {k_pressed_photo_number} 的图片：左上角patch保存至top")
+        print(f"- 编号 > {k_pressed_photo_number} 的图片：中心patch保存至bottom")
     else:
         print("- 中心像素保存至 processed/bottom")
         print("- 左上角像素保存至 processed/top")
 
 
-
 # 示例用法
 if __name__ == "__main__":
-    process_images(input_dir="photo", crop_size=500, patch_size=10)
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='图像处理工具')
+    parser.add_argument('--path', '-p', type=str, required=True, 
+                       help='基础路径，程序会在此路径下的original文件夹中查找图片')
+    parser.add_argument('--crop_size', '-c', type=int, default=500, 
+                       help='裁切区域大小，默认为500')
+    parser.add_argument('--patch_size', '-s', type=int, default=10, 
+                       help='patch大小，默认为10')
+    parser.add_argument('--k_pressed', '-k', type=int, default=None, 
+                       help='k键按下时的照片编号，用于分类处理')
+    
+    args = parser.parse_args()
+    
+    process_images(
+        base_path=args.path,
+        crop_size=args.crop_size,
+        patch_size=args.patch_size,
+        k_pressed_photo_number=args.k_pressed
+    )

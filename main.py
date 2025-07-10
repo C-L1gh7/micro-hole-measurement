@@ -17,6 +17,8 @@ SERIAL_PORT = 'COM5'
 BAUD_RATE = 115200
 TIMEOUT = 1
 
+name = input("请输入样品号：") # 获取样品号
+
 # 打开默认摄像头
 cap = cv2.VideoCapture(0)
 if not cap.isOpened():
@@ -200,13 +202,13 @@ finally:
 if photo_count > 0:
     print("开始处理图片...")
     # 将k_pressed_photo_number传递给处理函数
-    shot.process_images(crop_size=crop_size, patch_size=patch_size, k_pressed_photo_number=k_pressed_photo_number)
+    shot.process_images(base_path=folder_name, crop_size=crop_size, patch_size=patch_size, k_pressed_photo_number=k_pressed_photo_number)
     print("图片处理完成")
 
 from libs.focus_analysis import analyze_focus
 
 # 一键分析，显示详细信息并保存结果
-result = analyze_focus(adjust=0.053195)
+result = analyze_focus(base_path=folder_name, name=name, adjust=0.053195)
 
 # 获取最佳图片文件名
 if result['top_peak']:

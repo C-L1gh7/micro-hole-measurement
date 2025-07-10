@@ -9,6 +9,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import norm
 import glob
 import re
+from datetime import datetime
 
 def skewed_gaussian(x, a, mu, sigma, alpha):
     """偏态高斯函数"""
@@ -119,6 +120,28 @@ def analyze_folder_focus(folder_path):
     except Exception:
         return None
 
+def send_file_to_wechat(file_path, webhook_url):
+    """发送文件到企业微信"""
+    try:
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+            base64_data = base64.b64encode(file_data).decode('utf-8')
+            md5_data = hashlib.md5(file_data).hexdigest()
+        
+        payload = {
+            "msgtype": "file",
+            "file": {
+                "base64": base64_data,
+                "md5": md5_data
+            }
+        }
+        
+        response = requests.post(webhook_url, json=payload)
+        if response.status_code != 200:
+            print(f"发送文件失败: {response.text}")
+    except Exception as e:
+        print(f"发送文件时出错: {e}")
+
 def send_image_to_wechat(image_path, webhook_url):
     """发送图片到企业微信"""
     try:
@@ -157,20 +180,14 @@ def send_text_to_wechat(text, webhook_url):
     except Exception as e:
         print(f"发送文本时出错: {e}")
 
-def analyze_focus_main(processed_path=None, adjust=0):
+def analyze_focus_main(base_path, name, adjust=0):
     """主函数：分析聚焦度并推送图片"""
-    # 默认路径处理
-    if processed_path is None:
-        # 查找最新的photo文件夹
-        if os.path.exists("photo"):
-            photo_folders = [f for f in os.listdir("photo") 
-                           if os.path.isdir(os.path.join("photo", f))]
-            if photo_folders:
-                photo_folders.sort(reverse=True)
-                processed_path = os.path.join("photo", photo_folders[0], "processed")
-        
-        if processed_path is None:
-            processed_path = "processed"
+    # 构建processed文件夹路径
+    processed_path = os.path.join(base_path, "processed")
+    
+    if not os.path.exists(processed_path):
+        print(f"错误：找不到processed文件夹：{processed_path}")
+        return None
     
     # 分析top和bottom文件夹
     top_folder = os.path.join(processed_path, "top")
@@ -207,8 +224,11 @@ def analyze_focus_main(processed_path=None, adjust=0):
     # 企业微信推送
     webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0c14a35f-f9df-42e3-8f3c-a76f28f1fbe5"
     
+    # 获取当前时分
+    current_time = datetime.now().strftime("%H:%M")
+    
     # 先发送数据处理结果
-    result_text = "聚焦度分析结果：\n"
+    result_text = f"样品 {name}_{current_time}\n\n聚焦度分析结果：\n"
     if top_peak is not None:
         result_text += f"TOP最佳: {top_peak}\n"
         if top_result:
@@ -237,7 +257,7 @@ def analyze_focus_main(processed_path=None, adjust=0):
     # 再发送图片
     if top_peak is not None:
         try:
-            original_dir = os.path.join(os.path.dirname(processed_path), 'original')
+            original_dir = os.path.join(base_path, 'original')
             center_frame = int(round(top_peak))
             indices = [center_frame + i for i in range(-2, 3)]
             
@@ -258,20 +278,22 @@ def analyze_focus_main(processed_path=None, adjust=0):
     }
 
 # 主要调用接口
-def analyze_focus(adjust=0):
+def analyze_focus(base_path, name, adjust=0):
     """简化的调用接口"""
-    return analyze_focus_main(adjust=adjust)
+    return analyze_focus_main(base_path, name, adjust=adjust)
 
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description='聚焦度分析工具')
-    parser.add_argument('--processed_path', '-p', type=str, default=None, 
-                       help='processed文件夹路径，默认自动查找最新的photo文件夹')
+    parser.add_argument('--path', '-p', type=str, required=True, 
+                       help='基础路径，程序会在此路径下查找processed文件夹')
+    parser.add_argument('--name', '-n', type=str, required=True, 
+                       help='样品名称，用于ZIP文件命名和微信消息标识')
     parser.add_argument('--adjust', '-a', type=float, default=0, 
                        help='孔深计算调整值，默认为0')
     
     args = parser.parse_args()
     
-    result = analyze_focus_main(processed_path=args.processed_path, adjust=args.adjust)
+    result = analyze_focus_main(base_path=args.path, name=args.name, adjust=args.adjust)
     print(f"\n分析完成！结果: {result}")
