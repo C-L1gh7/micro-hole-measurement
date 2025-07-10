@@ -206,15 +206,15 @@ if photo_count > 0:
 from libs.focus_analysis import analyze_focus
 
 # 一键分析，显示详细信息并保存结果
-result = analyze_focus(method='wavelet', save_file=True, verbose=False, adjust=0.03925)
+result = analyze_focus(adjust=0.053195)
 
 # 获取最佳图片文件名
-if result['top_best']:
-    print(f"TOP最佳: {result['top_best']['filename']}")
-if result['bottom_best']:
-    print(f"BOTTOM最佳: {result['bottom_best']['filename']}")
-if result[ 'aperture']:
-    print(f"孔深: {result['aperture']}")
+if result['top_peak']:
+    print(f"TOP最佳: {result['top_peak']}")
+if result['bottom_peak']:
+    print(f"BOTTOM最佳: {result['bottom_peak']}")
+if result['aperture']:
+    print(f"孔深: {result['aperture']:.5f}")
 
 # 计算总耗时
 end_all = time.time()
