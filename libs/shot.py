@@ -29,10 +29,10 @@ def draw_crosshair(frame, crop_size=50, patch_size=50):
     cx2 = center_x + half_patch
     cy2 = center_y + half_patch
 
-    # 左上角 patch
-    top_x1 = crop_x1
+    # 上方中心 patch（y轴不变，x轴移到正中心）
+    top_x1 = center_x - half_patch
     top_y1 = crop_y1
-    top_x2 = crop_x1 + patch_size
+    top_x2 = center_x + half_patch
     top_y2 = crop_y1 + patch_size
 
     # 十字线
@@ -42,7 +42,7 @@ def draw_crosshair(frame, crop_size=50, patch_size=50):
     # 画框
     cv2.rectangle(frame_with_overlay, (crop_x1, crop_y1), (crop_x2, crop_y2), (255, 0, 255), 2)  # crop 框
     cv2.rectangle(frame_with_overlay, (cx1, cy1), (cx2, cy2), (255, 0, 255), 2)                  # 中心 patch
-    cv2.rectangle(frame_with_overlay, (top_x1, top_y1), (top_x2, top_y2), (255, 0, 255), 2)      # 左上角 patch
+    cv2.rectangle(frame_with_overlay, (top_x1, top_y1), (top_x2, top_y2), (255, 0, 255), 2)      # 上方中心 patch
 
     return frame_with_overlay
 
@@ -50,7 +50,7 @@ def draw_crosshair(frame, crop_size=50, patch_size=50):
 def process_images(base_path, crop_size=50, patch_size=10, k_pressed_photo_number=None):
     """
     处理指定路径下original文件夹中的图片
-    灰度化原图 -> 保存至processed/gray -> 提取中心与左上角patch并保存
+    灰度化原图 -> 保存至processed/gray -> 提取中心与上方中心patch并保存
     如果k_pressed_photo_number不为None，则根据照片编号分配到top/bottom文件夹
     """
     # 构建original文件夹路径
@@ -104,18 +104,18 @@ def process_images(base_path, crop_size=50, patch_size=10, k_pressed_photo_numbe
             crop_center_x - half_patch : crop_center_x + half_patch
         ]
 
-        # 左上角patch
+        # 上方中心patch（y轴保持在crop区域上边界，x轴移到正中心）
         top_patch = img[
             crop_y1 : crop_y1 + patch_size,
-            crop_x1 : crop_x1 + patch_size
+            center_x - half_patch : center_x + half_patch
         ]
 
         # 根据k_pressed_photo_number决定保存位置
         if k_pressed_photo_number is not None:
-            # 编号小于k_pressed_photo_number的图片：左上角patch保存到top，中心patch保存到bottom
-            # 编号大于等于k_pressed_photo_number的图片：中心patch保存到bottom，左上角patch保存到top
+            # 编号小于k_pressed_photo_number的图片：上方中心patch保存到top，中心patch保存到bottom
+            # 编号大于等于k_pressed_photo_number的图片：中心patch保存到bottom，上方中心patch保存到top
             if photo_number <= k_pressed_photo_number:
-                # 左上角patch -> top
+                # 上方中心patch -> top
                 top_dir = os.path.join(processed_dir, "top")
                 os.makedirs(top_dir, exist_ok=True)
                 cv2.imwrite(os.path.join(top_dir, f"{base_name}.png"), top_patch)
@@ -131,7 +131,7 @@ def process_images(base_path, crop_size=50, patch_size=10, k_pressed_photo_numbe
             os.makedirs(bottom_dir, exist_ok=True)
             cv2.imwrite(os.path.join(bottom_dir, f"{base_name}.png"), center_patch)
 
-            # 保存到 top（左上角 patch）
+            # 保存到 top（上方中心 patch）
             top_dir = os.path.join(processed_dir, "top")
             os.makedirs(top_dir, exist_ok=True)
             cv2.imwrite(os.path.join(top_dir, f"{base_name}.png"), top_patch)
@@ -142,11 +142,11 @@ def process_images(base_path, crop_size=50, patch_size=10, k_pressed_photo_numbe
     
     if k_pressed_photo_number is not None:
         print(f"根据k键按下时的照片编号({k_pressed_photo_number})进行分类处理")
-        print(f"- 编号 <= {k_pressed_photo_number} 的图片：左上角patch保存至top")
+        print(f"- 编号 <= {k_pressed_photo_number} 的图片：上方中心patch保存至top")
         print(f"- 编号 > {k_pressed_photo_number} 的图片：中心patch保存至bottom")
     else:
         print("- 中心像素保存至 processed/bottom")
-        print("- 左上角像素保存至 processed/top")
+        print("- 上方中心像素保存至 processed/top")
 
 
 # 示例用法

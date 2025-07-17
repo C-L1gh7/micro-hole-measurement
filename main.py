@@ -26,7 +26,7 @@ if not cap.isOpened():
     exit()
 
 # 生成文件夹名(年月日_时分)
-folder_name = datetime.now().strftime("photo/%Y%m%d_%H%M")
+folder_name = datetime.now().strftime("photo/%Y%m%d_%H%M%S")
 original_dir = os.path.join(folder_name, "original")
 processed_dir = os.path.join(folder_name, "processed")
 
@@ -197,7 +197,6 @@ finally:
     cap.release()
     cv2.destroyAllWindows()
     print("摄像头已释放")
-
 # 处理所有图片
 if photo_count > 0:
     print("开始处理图片...")
@@ -208,7 +207,8 @@ if photo_count > 0:
 from libs.focus_analysis import analyze_focus
 
 # 一键分析，显示详细信息并保存结果
-result = analyze_focus(base_path=folder_name, name=name, adjust=0.053195)
+result = analyze_focus(base_path=folder_name, name=name, adjust=0.06524)
+# 0.04908,0.06524
 
 # 获取最佳图片文件名
 if result['top_peak']:

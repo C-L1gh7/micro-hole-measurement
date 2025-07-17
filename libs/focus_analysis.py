@@ -222,10 +222,11 @@ def analyze_focus_main(base_path, name, adjust=0):
         print("孔深: 无法计算")
     
     # 企业微信推送
-    webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0c14a35f-f9df-42e3-8f3c-a76f28f1fbe5"
+    webhook_url_r = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0c14a35f-f9df-42e3-8f3c-a76f28f1fbe5"
+    webhook_url_h = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=cb9d131b-d42d-4c2c-b87b-fd5825c3155e"
     
     # 获取当前时分
-    current_time = datetime.now().strftime("%H:%M")
+    current_time = datetime.now().strftime("%H:%M:%S")
     
     # 先发送数据处理结果
     result_text = f"样品 {name}_{current_time}\n\n聚焦度分析结果：\n"
@@ -252,7 +253,8 @@ def analyze_focus_main(base_path, name, adjust=0):
     else:
         result_text += "孔深: 无法计算"
     
-    send_text_to_wechat(result_text, webhook_url)
+    send_text_to_wechat(result_text, webhook_url_r)
+    send_text_to_wechat(result_text, webhook_url_h)
     
     # 再发送图片
     if top_peak is not None:
@@ -264,7 +266,7 @@ def analyze_focus_main(base_path, name, adjust=0):
             for idx in indices:
                 image_path = os.path.join(original_dir, f"{idx}.png")
                 if os.path.exists(image_path):
-                    send_image_to_wechat(image_path, webhook_url)
+                    send_image_to_wechat(image_path, webhook_url_r)
         except Exception as e:
             print(f"推送图片时出错: {e}")
     
