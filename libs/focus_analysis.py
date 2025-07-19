@@ -222,8 +222,8 @@ def analyze_focus_main(base_path, name, adjust=0):
         print("孔深: 无法计算")
     
     # 企业微信推送
-    webhook_url_r = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=0c14a35f-f9df-42e3-8f3c-a76f28f1fbe5"
-    webhook_url_h = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=cb9d131b-d42d-4c2c-b87b-fd5825c3155e"
+    webhook_url_r = "输入自己的机器人key"
+    webhook_url_h = "输入自己的机器人key"
     
     # 获取当前时分
     current_time = datetime.now().strftime("%H:%M:%S")

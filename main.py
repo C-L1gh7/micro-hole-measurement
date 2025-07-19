@@ -5,7 +5,7 @@ import time
 import serial
 
 from libs import shot
-from libs import CamAdjust as ca
+
 
 start_all = time.time()# 记录开始时间
 
