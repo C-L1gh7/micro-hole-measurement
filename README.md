@@ -1,7 +1,4 @@
 # Micro Hole Measurement
-
-[TOC]
-
 ## 开始入门
 
 ### 概述
