@@ -62,8 +62,8 @@ function focus_analysis_main()
         % 应用校正公式: d = 测得d - 测得d*(-0.09024) + 0.19598
         depth = depth_measured - (depth_measured * (-0.09024) + 0.19598);
         
-        %fprintf('测得深度(未校正): %.3f mm\n', depth_measured);
-        fprintf('校正后深度: %.3f mm\n', depth);
+        %fprintf('测得深度: %.5f mm\n', depth_measured);
+        fprintf('定标后深度: %.5f mm\n', depth);
     else
         depth = [];
         fprintf('深度: 无法计算\n');

@@ -20,7 +20,7 @@ TIMEOUT = 1
 name = input("请输入样品号：") # 获取样品号
 
 # 打开默认摄像头
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 if not cap.isOpened():
     print("无法打开摄像头")
     exit()
